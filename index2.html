@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KARUPPU AI · Command Center</title>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background-color: #0A0F1C;
+            color: #e0f0ff;
+            font-family: 'Rajdhani', 'Orbitron', sans-serif;
+            overflow-x: hidden;
+            line-height: 1.6;
+            position: relative;
+        }
+        /* animated data grid background */
+        .grid-background {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 245, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 245, 255, 0.02) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: -2;
+        }
+        /* moving data lines */
+        .moving-lines {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,179,0.02) 2px, rgba(0,245,255,0.02) 4px);
+            animation: scan 12s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.3;
+        }
+        @keyframes scan { 0% { background-position: 0 0; } 100% { background-position: 0 40px; } }
+        
+        /* particle field */
+        #particles {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+
+        /* main container */
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 2rem 4rem;
+            position: relative;
+            backdrop-filter: blur(2px);
+        }
+
+        /* boot sequence */
+        .boot-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0A0F1C;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', monospace;
+            color: #00F5FF;
+            font-size: 2.5rem;
+            flex-direction: column;
+            gap: 2rem;
+            transition: opacity 1.2s ease;
+        }
+        .boot-text {
+            border-right: 3px solid #00F5FF;
+            white-space: nowrap;
+            overflow: hidden;
+            animation: typing 3s steps(30) forwards, blink-caret 0.75s step-end infinite;
+            width: 0;
+            font-weight: 600;
+            text-shadow: 0 0 15px #00F5FF;
+        }
+        @keyframes typing { to { width: 24ch; } } /* width updated for "Initializing Karuppu AI..." */
+        @keyframes blink-caret { 50% { border-color: transparent; } }
+        .boot-sub {
+            font-size: 1.2rem;
+            color: #00FFB3;
+            opacity: 0;
+            animation: fadeIn 1s 2.8s forwards;
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        /* glassmorphism cards */
+        .glass-card {
+            background: rgba(10, 15, 28, 0.5);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 30px rgba(0,245,255,0.2);
+            padding: 1.8rem 2rem;
+            transition: 0.3s;
+        }
+        .glass-card:hover {
+            border-color: #00F5FF;
+            box-shadow: 0 0 40px rgba(0,245,255,0.4);
+        }
+
+        /* hero section */
+        .hero {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            gap: 2rem;
+        }
+        .hero-left h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #00F5FF 70%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+            text-shadow: 0 0 20px #00F5FF;
+        }
+        .hero-left .title {
+            font-size: 1.5rem;
+            color: #00FFB3;
+            margin: 0.5rem 0 1rem;
+            font-weight: 500;
+        }
+        .hero-left .tag {
+            color: #8892b0;
+            font-size: 1.2rem;
+            border-left: 4px solid #00F5FF;
+            padding-left: 1rem;
+        }
+        .quick-access {
+            display: flex;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+        .quick-access i {
+            color: #00F5FF;
+            font-size: 1.5rem;
+            margin-right: 8px;
+        }
+        .quick-access span {
+            font-size: 1rem;
+        }
+
+        /* right panel - AI assistant */
+        .ai-terminal {
+            min-width: 320px;
+            background: rgba(0, 15, 25, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid #00F5FF;
+            border-radius: 40px;
+            padding: 1.8rem;
+            box-shadow: 0 0 60px rgba(0,245,255,0.3);
+        }
+        .ai-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: #00FFB3;
+            border-bottom: 1px dashed #00F5FF;
+            padding-bottom: 1rem;
+        }
+        .ai-messages {
+            min-height: 100px;
+            margin: 15px 0;
+            background: rgba(0,0,0,0.3);
+            border-radius: 20px;
+            padding: 15px;
+            font-size: 1rem;
+        }
+        .ai-questions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .ai-question-chip {
+            background: rgba(0,245,255,0.1);
+            border: 1px solid #00F5FF;
+            border-radius: 40px;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .ai-question-chip:hover {
+            background: #00F5FF;
+            color: #0A0F1C;
+        }
+
+        /* section titles */
+        .section-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 600;
+            margin: 2.5rem 0 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .section-title i {
+            color: #00F5FF;
+            font-size: 2.2rem;
+        }
+
+        /* skills area - redesigned labels exactly as screenshot: chip-like rectangular tags */
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1.5rem;
+            margin: 1rem 0;
+        }
+        .skill-item {
+            text-align: center;
+            background: rgba(0, 245, 255, 0.05);
+            border: 1px solid #00F5FF;
+            border-radius: 12px;        /* rectangular with slight rounding */
+            padding: 0.8rem 0.5rem;
+            box-shadow: 0 0 15px rgba(0,245,255,0.2);
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 600;
+            font-size: 1.2rem;
+            letter-spacing: 0.5px;
+            color: #00FFB3;
+            backdrop-filter: blur(4px);
+        }
+        .skill-item:hover {
+            background: rgba(0,245,255,0.15);
+            box-shadow: 0 0 25px #00F5FF;
+            border-color: #00FFB3;
+        }
+        /* Remove circular progress and keep only text */
+        .circular-progress {
+            display: none;   /* completely hide circles as per reference style (only labels) */
+        }
+
+        /* data graph (fake live) unchanged */
+        .live-graph {
+            background: rgba(0,0,0,0.4);
+            border-radius: 30px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(0,245,255,0.4);
+            height: 100px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+        .graph-bar {
+            flex: 1;
+            background: #00F5FF;
+            height: calc(20% + 20px);
+            border-radius: 8px 8px 0 0;
+            box-shadow: 0 0 15px cyan;
+            animation: breathe 2s infinite alternate;
+        }
+        @keyframes breathe { 0% { opacity: 0.8; height: 30px; } 100% { opacity: 1; height: 80px; } }
+
+        /* education panel unchanged */
+        .edu-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .coursework-tags span {
+            background: rgba(0,245,255,0.08);
+            border: 1px solid #00F5FF;
+            border-radius: 40px;
+            padding: 6px 16px;
+            margin: 0 8px 8px 0;
+            display: inline-block;
+        }
+
+        /* projects unchanged */
+        .project-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+        .project-card {
+            background: rgba(0, 20, 30, 0.5);
+            backdrop-filter: blur(8px);
+            border: 1px solid #00F5FF;
+            border-radius: 30px;
+            padding: 1.8rem;
+            transition: 0.3s;
+        }
+        .project-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 60px #00F5FF33;
+        }
+        .tech-tag {
+            background: rgba(0,255,179,0.1);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        /* command line terminal unchanged */
+        .terminal-window {
+            background: #0A0F1C;
+            border: 2px solid #00F5FF;
+            border-radius: 20px;
+            padding: 1.5rem;
+            font-family: 'Courier New', monospace;
+            box-shadow: 0 0 40px #00F5FF;
+        }
+        .cmd-line {
+            color: #00FFB3;
+            margin: 8px 0;
+        }
+        .cursor {
+            background: #00F5FF;
+            display: inline-block;
+            width: 10px;
+            height: 1.2rem;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* final cta unchanged */
+        .cta-section {
+            text-align: center;
+            margin: 5rem 0 2rem;
+            padding: 3rem;
+            border: 2px solid #00F5FF;
+            border-radius: 80px;
+            background: rgba(0,245,255,0.02);
+        }
+        .cta-button {
+            background: transparent;
+            border: 2px solid #00F5FF;
+            color: #00F5FF;
+            font-size: 1.5rem;
+            padding: 1rem 3rem;
+            border-radius: 60px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 1rem;
+        }
+        .cta-button:hover {
+            background: #00F5FF;
+            color: #0A0F1C;
+            box-shadow: 0 0 80px #00F5FF;
+        }
+
+        /* typing text effect for assistant unchanged */
+        .typing-effect::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+
+        /* responsiveness */
+        @media (max-width: 800px) {
+            .hero { flex-direction: column; }
+            .edu-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-background"></div>
+    <div class="moving-lines"></div>
+    <canvas id="particles"></canvas>
+
+    <!-- BOOT SEQUENCE -->
+    <div id="bootOverlay" class="boot-overlay">
+        <div class="boot-text" id="bootText">Initializing Karuppu AI...</div>
+        <div class="boot-sub">System Ready.</div>
+    </div>
+
+    <div class="dashboard">
+        <!-- Hero Section -->
+        <div class="hero">
+            <div class="hero-left glass-card" style="flex:2;">
+                <h1>KARUPPU SK</h1>
+                <div class="title">Electronics & Communication Engineer</div>
+                <div class="tag">Engineering Intelligence into Reality</div>
+                <div style="margin: 1rem 0; color:#a0b0d0;"><i class="fas fa-map-pin" style="color:#00F5FF;"></i> Ariyalur – 612904</div>
+                <div class="quick-access">
+                    <div><i class="fas fa-phone-alt"></i> <span>6337838388</span></div>
+                    <div><i class="fas fa-envelope"></i> <span>karuppukaruppaiyan941@gmail.com</span></div>
+                    <div><i class="fab fa-linkedin"></i> <span>linkedin.com/in/karuppaiyan-b73371295</span></div>
+                </div>
+            </div>
+            <div class="ai-terminal" id="aiTerminal">
+                <div class="ai-header"><i class="fas fa-microchip"></i> BLACK AI <span style="font-size:0.8rem; margin-left:auto; color:#00F5FF;">ONLINE</span></div>
+                <div class="ai-messages" id="aiMessages">
+                    <div>🔹 Ask me anything about Karuppu's profile.</div>
+                </div>
+                <div class="ai-questions" id="aiQuestionChips">
+                    <div class="ai-question-chip">What are Karuppu's projects?</div>
+                    <div class="ai-question-chip">What technologies does he know?</div>
+                    <div class="ai-question-chip">Is he available for internships?</div>
+                    <div class="ai-question-chip">Show education details</div>
+                </div>
+                <div style="margin-top: 15px;"><i class="fas fa-robot" style="color:#00FFB3;"></i> <span class="typing-effect" id="aiTyping"></span></div>
+            </div>
+        </div>
+
+        <!-- About Module (Mission Directive) -->
+        <div class="section-title"><i class="fas fa-bullseye"></i> Mission Directive</div>
+        <div class="glass-card">
+            Electronics and Communication Engineering student with strong interest in Data Science, Embedded Systems, IoT and AI-based applications. Seeking industry-oriented roles and real-world learning opportunities to build intelligent systems.
+        </div>
+
+        <!-- Skills Dashboard with redesigned labels (chip-like rectangular tags) -->
+        <div class="section-title"><i class="fas fa-chart-line"></i> Skills Dashboard</div>
+        <div class="glass-card">
+            <div class="skills-grid" id="skillsGrid"></div>
+            <!-- Live data graph (unchanged) -->
+            <div class="live-graph">
+                <div class="graph-bar" style="height:40px;"></div><div class="graph-bar" style="height:65px;"></div><div class="graph-bar" style="height:30px;"></div><div class="graph-bar" style="height:70px;"></div><div class="graph-bar" style="height:50px;"></div><div class="graph-bar" style="height:80px;"></div><div class="graph-bar" style="height:55px;"></div>
+            </div>
+        </div>
+
+        <!-- Education & Coursework -->
+        <div class="section-title"><i class="fas fa-university"></i> Education Terminal</div>
+        <div class="glass-card edu-grid">
+            <div>
+                <h2 style="color:#00F5FF;">B.E - Electronics and Communication Engineering</h2>
+                <p style="font-size:1.2rem;">Government College of Engineering, Salem</p>
+                <p>2023 - 2027 | CGPA: 7.74 / 10</p>
+                <p>Academic Scores: SSLC – 100%, HSC – 91%</p>
+            </div>
+            <div>
+                <h3 style="color:#00FFB3;">Relevant Coursework</h3>
+                <div class="coursework-tags">
+                    <span>Microprocessor and Microcontroller</span> <span>Embedded Systems</span> <span>Analog and Digital Electronics</span> <span>Control Systems</span> <span>IoT</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects Module -->
+        <div class="section-title"><i class="fas fa-microchip"></i> Innovation Lab</div>
+        <div class="project-cards" id="projectCards"></div>
+
+        <!-- Experience Terminal (CLI style) -->
+        <div class="section-title"><i class="fas fa-terminal"></i> Experience Terminal</div>
+        <div class="terminal-window">
+            <div class="cmd-line">$ load workshops</div>
+            <div style="color:#ccc;">>> Embedded Systems with IoT – GCE Salem</div>
+            <div style="color:#ccc;">>> Measuring Instruments Training – ECE Dept., GCE Salem</div>
+            <div class="cmd-line">$ load industrial_exposure</div>
+            <div style="color:#ccc;">>> Embedded Systems – CodeBind Technologies, Coimbatore</div>
+            <div class="cmd-line">$ load hackathon</div>
+            <div style="color:#ccc;">>> Smart India Hackathon (SIH) 2025 – Internal Participant</div>
+            <div class="cmd-line">$ status internship</div>
+            <div style="color:#00FFB3;">Actively seeking internship opportunities in Embedded Systems / IoT / Electronics domain.</div>
+            <div class="cmd-line">_ <span class="cursor"></span></div>
+        </div>
+
+        <!-- Final CTA -->
+        <div class="cta-section">
+            <h2 style="font-size:2.5rem;">Access Collaboration Protocol</h2>
+            <p style="font-size:1.2rem;">Let's Build Intelligent Systems Together</p>
+            <button class="cta-button" onclick="alert('Let’s connect: pkohiths@gmail.com')">INITIATE CONTACT</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // Boot sequence
+            setTimeout(() => {
+                document.getElementById('bootOverlay').style.opacity = 0;
+                setTimeout(() => document.getElementById('bootOverlay').style.display = 'none', 1200);
+            }, 3500);
+
+            // Particle background
+            const canvas = document.getElementById('particles');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const particles = [];
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 2 + 1,
+                    speedX: (Math.random() - 0.5) * 0.3,
+                    speedY: (Math.random() - 0.5) * 0.3,
+                    color: `rgba(0, 245, 255, ${Math.random()*0.5+0.2})`
+                });
+            }
+            function drawParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = p.color;
+                    ctx.fill();
+                    p.x += p.speedX;
+                    p.y += p.speedY;
+                    if (p.x < 0 || p.x > canvas.width) p.speedX *= -1;
+                    if (p.y < 0 || p.y > canvas.height) p.speedY *= -1;
+                });
+                requestAnimationFrame(drawParticles);
+            }
+            drawParticles();
+
+            // Populate skills with redesigned label style (chip-like rectangular tags)
+            const skills = [
+                "Embedded C", "UART / I2C", "Arduino & ESP32", 
+                "Electronics", "Python", "SQL & MongoDB", "Data Science"
+            ];
+            const skillsGrid = document.getElementById('skillsGrid');
+            skillsGrid.innerHTML = skills.map(skill => 
+                `<div class="skill-item">${skill}</div>`
+            ).join('');
+
+            // Projects (unchanged)
+            const projects = [
+                { title: "Pipeline Leak Detection System using Fiber Optic Micro-Robot", description: "Designed an underground and underwater leak detection concept using ultrasonic sensing and fiber optic data transmission.", tags: ["Ultrasonic Sensors","Fiber Optics","Embedded Concept"] },
+                { title: "Conveyor Belt Jam Detection System", description: "Developed a real-time industrial jam detection system using sensor-based monitoring to reduce downtime and prevent machine damage.", tags: ["Sensors","Industrial Automation","Real-time Monitoring"] }
+            ];
+            const projContainer = document.getElementById('projectCards');
+            projContainer.innerHTML = projects.map(p => `<div class="project-card glass-card">
+                <h3 style="color:#00F5FF;">${p.title}</h3>
+                <p>${p.description}</p>
+                <div style="margin-top:1rem;">${p.tags.map(t => `<span class="tech-tag">#${t}</span>`).join('')}</div>
+            </div>`).join('');
+
+            // AI Assistant logic (unchanged)
+            const aiMessages = document.getElementById('aiMessages');
+            const aiTyping = document.getElementById('aiTyping');
+            const chips = document.querySelectorAll('.ai-question-chip');
+
+            function botReply(question) {
+                const q = question.toLowerCase();
+                if (q.includes('project')) return "karuppu's projects: Pipeline Leak Detection (fiber optic), Conveyor Jam Detection. Both are innovative embedded concepts.";
+                if (q.includes('technologies') || q.includes('know')) return "Technologies: Embedded C, UART/I2C, Arduino, ESP32, Python, SQL, MongoDB, Data Science.";
+                if (q.includes('internship')) return "He is actively seeking internships in Embedded Systems, IoT, or Electronics. You can contact via email.";
+                if (q.includes('education')) return "B.E. ECE at GCE Salem, CGPA 7.74, coursework includes Microcontrollers, Embedded Systems, IoT, etc.";
+                return "I can help with skills, projects, education, or internship status. Try asking!";
+            }
+
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const question = chip.innerText;
+                    const msgDiv = document.createElement('div');
+                    msgDiv.innerHTML = `<span style="color:#00FFB3;">>_</span> ${question}`;
+                    aiMessages.appendChild(msgDiv);
+                    aiTyping.textContent = 'Karuppu AI is thinking...';
+                    setTimeout(() => {
+                        aiTyping.textContent = '';
+                        const reply = botReply(question);
+                        const replyDiv = document.createElement('div');
+                        replyDiv.style.color = '#00F5FF';
+                        replyDiv.innerHTML = `⚡ ${reply}`;
+                        aiMessages.appendChild(replyDiv);
+                        aiMessages.scrollTop = aiMessages.scrollHeight;
+                    }, 800);
+                });
+            });
+
+            setTimeout(() => {
+                aiTyping.textContent = 'Ask me anything.';
+            }, 4000);
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+        })();
+    </script>
+</body>
+</html>
